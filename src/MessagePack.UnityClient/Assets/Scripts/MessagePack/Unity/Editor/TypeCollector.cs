@@ -145,6 +145,7 @@ namespace MessagePack.Unity.Editor
         };
 
         private readonly bool isForceUseMap;
+        private readonly bool requireIgnoreAttributes;
         private HashSet<string> externalIgnoreTypeNames;
 
         private HashSet<Type> alreadyCollected = new HashSet<Type>();
@@ -153,9 +154,10 @@ namespace MessagePack.Unity.Editor
         private List<GenericSerializationInfo> collectedGenericInfo = new List<GenericSerializationInfo>();
         private List<UnionSerializationInfo> collectedUnionInfo = new List<UnionSerializationInfo>();
 
-        public TypeCollector(bool isForceUseMap, string[] ignoreTypeNames)
+        public TypeCollector(bool isForceUseMap, string[] ignoreTypeNames, bool requireIgnoreAttributes)
         {
             this.isForceUseMap = isForceUseMap;
+            this.requireIgnoreAttributes = requireIgnoreAttributes;
             externalIgnoreTypeNames = new HashSet<string>(ignoreTypeNames ?? Array.Empty<string>());
         }
 
@@ -496,7 +498,7 @@ namespace MessagePack.Unity.Editor
                 {
                     foreach (MemberInfo item in memberGroup)
                     {
-                        if (item.GetCustomAttribute<IgnoreMemberAttribute>(true) != null || item.GetCustomAttribute<IgnoreDataMemberAttribute>(true) != null)
+                        if (IgnoreMember(item))
                         {
                             continue;
                         }
@@ -588,7 +590,7 @@ namespace MessagePack.Unity.Editor
 
                 foreach (PropertyInfo item in GetAllProperties(type))
                 {
-                    if (item.GetCustomAttribute<IgnoreMemberAttribute>(true) != null || item.GetCustomAttribute<IgnoreDataMemberAttribute>(true) != null)
+                    if (IgnoreMember(item))
                     {
                         continue;
                     }
@@ -625,8 +627,9 @@ namespace MessagePack.Unity.Editor
                         key = item.GetCustomAttribute<KeyAttribute>(true);
                         if (key == null)
                         {
+                            if (requireIgnoreAttributes)
+                                throw new MessagePackGeneratorResolveFailedException("all public members must mark KeyAttribute or IgnoreMemberAttribute." + " type: " + type.FullName + " member:" + item.Name);
                             continue;
-                            //throw new MessagePackGeneratorResolveFailedException("all public members must mark KeyAttribute or IgnoreMemberAttribute." + " type: " + type.FullName + " member:" + item.Name);
                         }
 
                         if (key.IntKey == null && key.StringKey == null)
@@ -700,7 +703,7 @@ namespace MessagePack.Unity.Editor
 
                 foreach (FieldInfo item in GetAllFields(type))
                 {
-                    if (item.GetCustomAttribute<IgnoreMemberAttribute>(true) != null || item.GetCustomAttribute<IgnoreDataMemberAttribute>(true) != null)
+                    if (IgnoreMember(item))
                     {
                         continue;
                     }
@@ -739,8 +742,9 @@ namespace MessagePack.Unity.Editor
                         key = item.GetCustomAttribute<KeyAttribute>(true);
                         if (key == null)
                         {
+                            if (requireIgnoreAttributes)
+                                throw new MessagePackGeneratorResolveFailedException("all public members must mark KeyAttribute or IgnoreMemberAttribute." + " type: " + type.FullName + " member:" + item.Name);
                             continue;
-                            //throw new MessagePackGeneratorResolveFailedException("all public members must mark KeyAttribute or IgnoreMemberAttribute." + " type: " + type.FullName + " member:" + item.Name);
                         }
 
                         if (key.IntKey == null && key.StringKey == null)
@@ -983,6 +987,12 @@ namespace MessagePack.Unity.Editor
                 NeedsCastOnAfter = needsCastOnAfter,
                 NeedsCastOnBefore = needsCastOnBefore,
             };
+        }
+
+        private bool IgnoreMember(MemberInfo member) {
+            return member.GetCustomAttribute<IgnoreMemberAttribute>(true) != null
+                || member.GetCustomAttribute<IgnoreDataMemberAttribute>(true) != null
+                || (!requireIgnoreAttributes && member.GetCustomAttribute<KeyAttribute>() == null);
         }
 
         private static GenericTypeParameterInfo ToGenericTypeParameterInfo(Type typeParameter)

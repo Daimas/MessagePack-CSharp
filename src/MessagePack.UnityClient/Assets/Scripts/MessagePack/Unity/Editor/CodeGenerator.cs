@@ -54,7 +54,7 @@ namespace MessagePackCompiler
             {
                 logger("Project Compilation Start");
 
-                var collector = new TypeCollector(useMapMode, externalIgnoreTypeNames);
+                var collector = new TypeCollector(useMapMode, externalIgnoreTypeNames, requireIgnoreAttributes: false);
 
                 logger("Project Compilation Complete:" + sw.Elapsed.ToString());
 
