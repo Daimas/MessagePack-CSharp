@@ -346,7 +346,7 @@ namespace MessagePack.Unity.Editor
             }
 
             // nullable
-            if (Nullable.GetUnderlyingType(genericType) != null)
+            if (Nullable.GetUnderlyingType(type) != null)
             {
                 CollectCore(type.GenericTypeArguments[0]);
 
